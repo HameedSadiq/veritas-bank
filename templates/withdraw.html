@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Withdraw - Veritas Bank{% endblock %}
+
+{% block content %}
+<div class="transaction-container fade-in">
+    <div class="transaction-card">
+        <div class="transaction-header">
+            <h1><i class="fas fa-minus-circle"></i> Withdraw Money</h1>
+            <p>Withdraw funds from your account</p>
+        </div>
+
+        <form id="withdrawForm" class="transaction-form">
+            <div class="form-group">
+                <label for="account_id">
+                    <i class="fas fa-wallet"></i> Select Account
+                </label>
+                <select id="account_id" name="account_id" required class="form-control">
+                    <option value="">Choose an account...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">
+                    <i class="fas fa-coins"></i> Withdrawal Amount (KSh)
+                </label>
+                <input 
+                    type="number" 
+                    id="amount" 
+                    name="amount" 
+                    required
+                    step="0.01"
+                    min="1"
+                    class="form-control"
+                    placeholder="Enter amount"
+                >
+            </div>
+
+            <div class="info-box warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Ensure you have sufficient balance. Withdrawals are processed immediately.</p>
+            </div>
+
+            <button type="submit" class="btn btn-danger btn-block">
+                <i class="fas fa-check"></i> Confirm Withdrawal
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    async function loadAccounts() {
+        const response = await fetch('{{ url_for("accounts.list_accounts") }}');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            const select = document.getElementById('account_id');
+            data.accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.account_id;
+                option.textContent = `${account.type} - ${account.number} (Balance: KSh ${account.balance.toFixed(2)})`;
+                select.appendChild(option);
+            });
+        }
+    }
+    
+    loadAccounts();
+    
+    document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const account_id = document.getElementById('account_id').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        
+        try {
+            const response = await fetch('{{ url_for("accounts.withdraw") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({account_id, amount})
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showNotification('Withdrawal successful!', 'success');
+                setTimeout(() => window.location.href = '{{ url_for("accounts.dashboard") }}', 1500);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        } catch (error) {
+            showNotification('Withdrawal failed: ' + error.message, 'error');
+        }
+    });
+</script>
+{% endblock %}

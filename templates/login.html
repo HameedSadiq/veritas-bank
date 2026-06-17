@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Veritas Bank{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card fade-in">
+        <div class="auth-header">
+            <i class="fas fa-university"></i>
+            <h1>Veritas Microfinance Bank</h1>
+            <p>Secure Digital Banking</p>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+            <div class="form-group">
+                <label for="email">
+                    <i class="fas fa-envelope"></i> Email Address
+                </label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required
+                    placeholder="Enter your email"
+                    class="form-control"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="id_number">
+                    <i class="fas fa-id-card"></i> ID Number
+                </label>
+                <input 
+                    type="text" 
+                    id="id_number" 
+                    name="id_number" 
+                    required
+                    placeholder="Enter your ID number"
+                    class="form-control"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="{{ url_for('auth.register') }}" class="link">Register here</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const id_number = document.getElementById('id_number').value;
+        
+        try {
+            const response = await fetch('{{ url_for("auth.login") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, id_number})
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showNotification('Login successful!', 'success');
+                setTimeout(() => window.location.href = '{{ url_for("accounts.dashboard") }}', 1000);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        } catch (error) {
+            showNotification('Login failed: ' + error.message, 'error');
+        }
+    });
+</script>
+{% endblock %}
