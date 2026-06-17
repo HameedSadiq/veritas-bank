@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - Veritas Bank{% endblock %}
+
+{% block content %}
+<div class="transactions-container fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-receipt"></i> Transaction History</h1>
+        <p>View all your account transactions</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <label for="account_select">
+                <i class="fas fa-wallet"></i> Select Account:
+            </label>
+            <select id="account_select" class="form-control" style="max-width: 300px;">
+                <option value="">Choose an account...</option>
+            </select>
+        </div>
+
+        <div class="card-body">
+            <div class="transactions-list" id="transactionsList">
+                <p class="no-data">Select an account to view transactions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadAccounts() {
+        const response = await fetch('{{ url_for("accounts.list_accounts") }}');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            const select = document.getElementById('account_select');
+            data.accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.account_id;
+                option.textContent = `${account.type} - ${account.number}`;
+                select.appendChild(option);
+            });
+        }
+    }
+    
+    async function loadTransactions(accountId) {
+        if (!accountId) return;
+        
+        try {
+            const response = await fetch(`{{ url_for('accounts.get_history', account_id=0) }}`.replace('0', accountId));
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.transactions.length > 0) {
+                let html = '<div class="table-responsive"><table class="transactions-table">';
+                html += '<thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead><tbody>';
+                
+                data.transactions.forEach(trans => {
+                    const typeClass = trans.type.includes('OUT') ? 'debit' : 'credit';
+                    html += `
+                        <tr class="transaction-row ${typeClass}">
+                            <td>${trans.date}</td>
+                            <td><span class="badge badge-${typeClass}">${trans.type}</span></td>
+                            <td>KSh ${trans.amount.toFixed(2)}</td>
+                            <td>KSh ${trans.balance_after.toFixed(2)}</td>
+                            <td>${trans.description}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                document.getElementById('transactionsList').innerHTML = html;
+            } else {
+                document.getElementById('transactionsList').innerHTML = '<p class="no-data">No transactions found for this account</p>';
+            }
+        } catch (error) {
+            showNotification('Error loading transactions: ' + error.message, 'error');
+        }
+    }
+    
+    loadAccounts();
+    
+    document.getElementById('account_select').addEventListener('change', (e) => {
+        loadTransactions(e.target.value);
+    });
+</script>
+{% endblock %}

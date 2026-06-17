@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Veritas Bank{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard fade-in">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
+        <p>Banking System Statistics & Monitoring</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Customers</h3>
+                <p class="stat-value" id="totalCustomers">0</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Accounts</h3>
+                <p class="stat-value" id="totalAccounts">0</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Balance</h3>
+                <p class="stat-value" id="totalBalance">KSh 0</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Today's Transactions</h3>
+                <p class="stat-value" id="todayTransactions">0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Logs -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-history"></i> Recent Audit Logs</h2>
+        </div>
+        <div class="card-body">
+            <div class="audit-logs" id="auditLogs"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadStatistics() {
+        try {
+            const response = await fetch('{{ url_for("admin.get_statistics") }}');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                document.getElementById('totalCustomers').textContent = data.total_customers;
+                document.getElementById('totalAccounts').textContent = data.total_accounts;
+                document.getElementById('totalBalance').textContent = `KSh ${data.total_balance.toLocaleString()}`;
+                document.getElementById('todayTransactions').textContent = data.today_transactions;
+            }
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+        }
+    }
+    
+    async function loadAuditLogs() {
+        try {
+            const response = await fetch('{{ url_for("admin.get_audit_logs") }}?limit=20');
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.logs.length > 0) {
+                let html = '<div class="table-responsive"><table class="logs-table">';
+                html += '<thead><tr><th>Timestamp</th><th>Action</th><th>Description</th><th>Account ID</th></tr></thead><tbody>';
+                
+                data.logs.forEach(log => {
+                    html += `
+                        <tr>
+                            <td>${log.timestamp}</td>
+                            <td><span class="badge">${log.action_type}</span></td>
+                            <td>${log.description}</td>
+                            <td>${log.account_id || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                document.getElementById('auditLogs').innerHTML = html;
+            } else {
+                document.getElementById('auditLogs').innerHTML = '<p class="no-data">No audit logs found</p>';
+            }
+        } catch (error) {
+            console.error('Error loading audit logs:', error);
+        }
+    }
+    
+    loadStatistics();
+    loadAuditLogs();
+    
+    // Refresh statistics every 30 seconds
+    setInterval(loadStatistics, 30000);
+</script>
+{% endblock %}
